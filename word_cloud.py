@@ -14,28 +14,35 @@ def _clean_data(raw_string):
     no_special_characters = re.sub("[^A-Za-z ]+", "", no_unicode)
     return no_special_characters
 
+def _cleanup_japanese_data(raw_string):
+    no_links = re.sub(r"http\S+", "", raw_string)
+    return no_links
 
-def _generate_word_counter(sheet):
+
+def _generate_word_counter(sheet, funktion=_clean_data):
     nrows = sheet.nrows
-    temp_counter = Counter()
+    word_counter = Counter()
     for row in range(2, nrows):
         _count = sheet.cell(row, 1).value
-        clean_data = _clean_data(sheet.cell(row, 4).value)
-        temp_counter.update(
+        clean_data = funktion(sheet.cell(row, 4).value)
+        word_counter.update(
             {
                 word.lower(): _count
                 for word in clean_data.split()
-                if word not in STOPWORDS
+                if word.lower() not in STOPWORDS
             }
         )
-    return temp_counter
+    return word_counter
 
 
 def generate_word_cloud(freq_counter, file_name):
-    wordcloud = WordCloud(max_words=2000).fit_words(freq_counter)
+    wordcloud = WordCloud(max_words=100, background_color="white").fit_words(freq_counter)
+    plt.figure(figsize=(15,10))
     plt.imshow(wordcloud, interpolation="bilinear")
     plt.axis("off")
-    plt.show()
+    plt.draw()
+    plt.savefig(file_name+".png", dpi=200)
+
 
 
 def _main():
@@ -51,6 +58,8 @@ def _main():
     generate_word_cloud(business_dict, "Biz")
     reuters_dict = _generate_word_counter(reuters_sheet)
     generate_word_cloud(reuters_dict, "Reuters")
+    japan_dict = _generate_word_counter(japan_sheet, _cleanup_japanese_data)
+    generate_word_cloud(japan_dict, "Japan")
 
 
 if __name__ == "__main__":
