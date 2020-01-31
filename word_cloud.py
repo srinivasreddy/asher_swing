@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import xlrd
 import numpy as np
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud, STOPWORDS
@@ -8,12 +7,21 @@ from collections import Counter
 import re
 import MeCab
 import ftfy
+import mysql.connector
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
-ES_STOPWORDS = set(stopwords.words('spanish'))
+ES_STOPWORDS = set(stopwords.words("spanish"))
 
 
+def connection_from_mysql():
+    db_connection = mysql.connector.connect(
+        host="localhost",
+        user="username_of_your_MySQL_server",
+        passwd="password_of_your_mysql_server",
+        database="your_database_name",
+    )
+    return db_connection
 
 
 def _clean_data(raw_string):
@@ -71,12 +79,13 @@ JP_STOP_WORDS = {
 }
 
 
-def mecab_analysis(sheet):
-    nrows = sheet.nrows
+def generate_japanese_word_counter(japanese_table_name):
+    sql_statement = "SELECT views, text FROM {};".format(japanese_table_name)
     word_counter = Counter()
-    for row in range(2, nrows):
-        text = sheet.cell(row, 4).value
-        _count = sheet.cell(row, 1).value
+    connection = connection_from_mysql()
+    for row in connection.cursor().execute(sql_statement):
+        text = row[1]
+        _count = int(row[0])
         t = MeCab.Tagger("-Ochasen")
         t.parse("")
         text = re.sub(r"http\S+", "", text)
@@ -92,28 +101,41 @@ def mecab_analysis(sheet):
             if node is None:
                 break
         word_counter.update({word: _count for word in output})
+    connection.close()
     return word_counter
 
 
-def spanish_analysis(sheet):
-    nrows = sheet.nrows
+def generate_spanish_word_counter(spanish_table_name):
+    sql_statement = "SELECT views, text FROM {};".format(spanish_table_name)
     word_counter = Counter()
-    for row in range(2, nrows):
-        text = sheet.cell(row, 4).value
-        _count = sheet.cell(row, 1).value
+    connection = connection_from_mysql()
+    for row in connection.cursor().execute(sql_statement):
+        text = row[1]
+        _count = int(row[0])
         text = re.sub(r"http\S+", "", text)
         output = [esp_token for esp_token in word_tokenize(text)]
-        word_counter.update({word: _count for word in output if word not in ES_STOPWORDS})
+        word_counter.update(
+            {word: _count for word in output if word not in ES_STOPWORDS}
+        )
+    connection.close()
     return word_counter
 
 
-def _generate_word_counter(sheet):
-    nrows = sheet.nrows
+def generate_word_counter(table_name):
+    sql_statement = "SELECT views, text FROM {};".format(table_name)
     word_counter = Counter()
-    for row in range(2, nrows):
-        _count = sheet.cell(row, 1).value
-        clean_data = _clean_data(sheet.cell(row, 4).value)
-        word_counter.update({word.lower(): _count for word in clean_data.split() if word.lower() not in STOPWORDS})
+    connection = connection_from_mysql()
+    for row in connection.cursor().execute(sql_statement):
+        _count = int(row[0])
+        clean_data = _clean_data(row[1])
+        word_counter.update(
+            {
+                word.lower(): _count
+                for word in clean_data.split()
+                if word.lower() not in STOPWORDS
+            }
+        )
+    connection.close()
     return word_counter
 
 
@@ -129,21 +151,15 @@ def generate_word_cloud(freq_counter, file_name, **kwargs):
 
 
 def _main():
-    wb = xlrd.open_workbook("video_activity_metrics_Reuters_20200121_20200127_en.xlsx")
-    india_sheet = wb.sheet_by_name("India")
-    latin_america_sheet = wb.sheet_by_name("Latam")
-    reuters_sheet = wb.sheet_by_name("Reuters")
-    business_sheet = wb.sheet_by_name("Biz")
-    japan_sheet = wb.sheet_by_name("Japan")
-    india_dict = _generate_word_counter(india_sheet)
+    india_dict = generate_word_counter("India_tweets_table_name")
     generate_word_cloud(india_dict, "India")
-    business_dict = _generate_word_counter(business_sheet)
+    business_dict = generate_word_counter("Business_tweets_table_name")
     generate_word_cloud(business_dict, "Biz")
-    reuters_dict = _generate_word_counter(reuters_sheet)
+    reuters_dict = generate_word_counter("Reuters_tweets_table_name")
     generate_word_cloud(reuters_dict, "Reuters")
-    latin_america_dict = spanish_analysis(latin_america_sheet)
+    latin_america_dict = generate_spanish_word_counter("Latam_tweets_table_name")
     generate_word_cloud(latin_america_dict, "Latam")
-    japan_dict = mecab_analysis(japan_sheet)
+    japan_dict = generate_japanese_word_counter("Japanese_tweets_table_name")
     generate_word_cloud(
         japan_dict,
         "Japan",
