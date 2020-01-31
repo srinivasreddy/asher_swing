@@ -164,7 +164,12 @@ def _main():
         japan_dict,
         "Japan",
         stopwords=JP_STOP_WORDS,
-        font_path="/System/Library/Fonts/ヒラギノ丸ゴ ProN W4.ttc",
+        font_path="/System/Library/Fonts/ヒラギノ丸ゴ ProN W4.ttc",  # This may not work on your system unless it is a macos,
+        # so you have to install japanese fonts on your system to display japanese characters properly.
+        # Please see this article on how to install japanese fonts.
+        # http://about-t3ch.blogspot.com/2015/04/how-to-install-japanese-font-in-linux.html
+        # Or
+        # Download it from here - https://github.com/posteroffonts/sanfran/blob/master/System/Library/Fonts/%E3%83%92%E3%83%A9%E3%82%AE%E3%83%8E%E4%B8%B8%E3%82%B4%20ProN%20W4.ttc
     )
 
 
