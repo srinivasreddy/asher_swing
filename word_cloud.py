@@ -16,10 +16,7 @@ ES_STOPWORDS = set(stopwords.words("spanish"))
 
 def connection_from_mysql():
     db_connection = mysql.connector.connect(
-        host="localhost",
-        user="username_of_your_MySQL_server",
-        passwd="password_of_your_mysql_server",
-        database="your_database_name",
+        host="localhost", user="root", passwd="root@1434", database="test",
     )
     return db_connection
 
@@ -80,10 +77,12 @@ JP_STOP_WORDS = {
 
 
 def generate_japanese_word_counter(japanese_table_name):
-    sql_statement = "SELECT views, text FROM {};".format(japanese_table_name)
+    sql_statement = "SELECT views, text_data FROM {};".format(japanese_table_name)
     word_counter = Counter()
     connection = connection_from_mysql()
-    for row in connection.cursor().execute(sql_statement):
+    cursor = connection.cursor()
+    cursor.execute(sql_statement)
+    for row in cursor:
         text = row[1]
         _count = int(row[0])
         t = MeCab.Tagger("-Ochasen")
@@ -106,10 +105,12 @@ def generate_japanese_word_counter(japanese_table_name):
 
 
 def generate_spanish_word_counter(spanish_table_name):
-    sql_statement = "SELECT views, text FROM {};".format(spanish_table_name)
+    sql_statement = "SELECT views, text_data FROM {};".format(spanish_table_name)
     word_counter = Counter()
     connection = connection_from_mysql()
-    for row in connection.cursor().execute(sql_statement):
+    cursor = connection.cursor()
+    cursor.execute(sql_statement)
+    for row in cursor:
         text = row[1]
         _count = int(row[0])
         text = re.sub(r"http\S+", "", text)
@@ -122,10 +123,12 @@ def generate_spanish_word_counter(spanish_table_name):
 
 
 def generate_word_counter(table_name):
-    sql_statement = "SELECT views, text FROM {};".format(table_name)
+    sql_statement = "SELECT views, text_data FROM {};".format(table_name)
     word_counter = Counter()
     connection = connection_from_mysql()
-    for row in connection.cursor().execute(sql_statement):
+    cursor = connection.cursor()
+    cursor.execute(sql_statement)
+    for row in cursor:
         _count = int(row[0])
         clean_data = _clean_data(row[1])
         word_counter.update(
@@ -151,7 +154,7 @@ def generate_word_cloud(freq_counter, file_name, **kwargs):
 
 
 def _main():
-    india_dict = generate_word_counter("India_tweets_table_name")
+    india_dict = generate_word_counter("test.word_cloud")
     generate_word_cloud(india_dict, "India")
     business_dict = generate_word_counter("Business_tweets_table_name")
     generate_word_cloud(business_dict, "Biz")
@@ -164,7 +167,8 @@ def _main():
         japan_dict,
         "Japan",
         stopwords=JP_STOP_WORDS,
-        font_path="/System/Library/Fonts/ヒラギノ丸ゴ ProN W4.ttc",  # This may not work on your system unless it is a macos,
+        font_path="/System/Library/Fonts/ヒラギノ丸ゴ ProN W4.ttc",
+        # This may not work on your system unless it is a macos,
         # so you have to install japanese fonts on your system to display japanese characters properly.
         # Please see this article on how to install japanese fonts.
         # http://about-t3ch.blogspot.com/2015/04/how-to-install-japanese-font-in-linux.html
