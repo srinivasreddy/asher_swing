@@ -16,7 +16,10 @@ ES_STOPWORDS = set(stopwords.words("spanish"))
 
 def connection_from_mysql():
     db_connection = mysql.connector.connect(
-        host="localhost", user="root", passwd="root@1434", database="test",
+        host="my_hostname",
+        user="my_username",
+        passwd="mypassword",
+        database="mydatabase",
     )
     return db_connection
 
